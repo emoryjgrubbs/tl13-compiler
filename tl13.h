@@ -9,7 +9,7 @@ typedef struct exp exp;
 typedef struct sExp sExp;
 typedef struct term term;
 typedef struct fact fact;
-typedef enum { TRUE_BOOL, FALSE_BOOL } boolVal;
+typedef enum { FALSE_BOOL, TRUE_BOOL } boolVal;
 
 struct program {
     declaration *decls;
@@ -85,6 +85,21 @@ struct fact {
     } value;
 };
 
+typedef struct error {
+    // int line;
+    char *info;
+
+    struct error *next;
+} error;
+
+typedef struct expInfo {
+    type type;
+    char* inStr;
+    char* outStr;
+
+    error *errors;
+} expInfo;
+
 int genProg(program *);
 int genDecls(declaration *);
 int genSmts(statement *, int);
@@ -92,7 +107,7 @@ int genAsn(assignment *, int);
 int genIf(ifState *, int);
 int genWhile(whileState *, int);
 int genWrite(exp *, int);
-int genExp(exp *);
-int genSExp(sExp *);
-int genTerm(term *);
-int genFact(fact *);
+expInfo *genExp(exp *);
+expInfo *genSExp(sExp *);
+expInfo *genTerm(term *);
+expInfo *genFact(fact *);
