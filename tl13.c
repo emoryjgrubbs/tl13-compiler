@@ -4,6 +4,15 @@
 #include <string.h>
 #include "tl13.h"
 
+// mostly unnessesary, but for making output easier to read
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 typedef struct tblEntry {
     char *id;
 
@@ -90,13 +99,13 @@ int genDecls(declaration *p) {
         if (p->type == ent->varType) {
             printf("\tvar %s as %s ; <-- Duplicate delcaration of previously declared\n", p->id, declType);
             printf("\t    ");
-            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
         }
         else {
             printf("\tvar %s as %s ; <-- Conflicting delcaration of previously declared\n", p->id, declType);
             printf("\t    ");
-            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
         }
         errors = TRUE_BOOL;
@@ -159,6 +168,15 @@ int genSmts(statement *p, int indents) {
     return 0;
 }
 
+int printExpErrors(char *smt, int smtPlace, error *err) {
+    if (!err) { return 0; }
+    printExpErrors(smt, smtPlace, err->next);
+    printf("\t%s <-- %s\n\t", smt, err->info);
+    for (int i = 0; i < smtPlace; i++) { printf(" "); }
+    printf(ANSI_COLOR_RED "^^^" ANSI_COLOR_RESET"\n\n");
+    return 0;
+}
+
 int genAsn(assignment *p, int indents) {
     struct tblEntry *ent;
     HASH_FIND_STR(entries, p->id, ent);
@@ -183,8 +201,16 @@ int genAsn(assignment *p, int indents) {
         printf("\n\n");
         errors = TRUE_BOOL;
 
-        if (exp->errors) {}
-        // TODO read list of errors from exp and print and free
+        // print the expression's errors
+        if (exp->errors) {
+            char *smt;
+            if ((smt = malloc(sizeof(p->id) + strlen(" := ") + strlen(exp->inStr) + strlen(" ;"))) == NULL) {}
+            strcpy(smt, p->id);
+            strcat(smt, " := ");
+            strcat(smt, exp->inStr);
+            strcat(smt, " ;");
+            printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
+        }
 
         free(p);
         return 0;
@@ -217,9 +243,9 @@ int genAsn(assignment *p, int indents) {
             }
             printf("\t%s := %s ; <-- Assigning %s to %s\n", p->id, exp->inStr, expTypeStr, varTypeStr);
             printf("\t");
-            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
             printf("    ");
-            for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+            for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
             errors = TRUE_BOOL;
         }
@@ -240,13 +266,24 @@ int genAsn(assignment *p, int indents) {
             // TODO ask about if it should auto be changed to initialized?
             ent->initialized = TRUE_BOOL;
         }
+
+        // print the expression's errors
+        if (exp->errors) {
+            char *smt;
+            if ((smt = malloc(sizeof(p->id) + strlen(" := ") + strlen(exp->inStr) + strlen(" ;"))) == NULL) {}
+            strcpy(smt, p->id);
+            strcat(smt, " := ");
+            strcat(smt, exp->inStr);
+            strcat(smt, " ;");
+            printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
+        }
     }
     else if (p->type == READ_ASN){
         if (ent->varType != INT_TYPE) {
             printf("\t%s := readInt ; <-- Assigning implicit read INT to BOOL\n", p->id);
             printf("\t");
-            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
-            printf("    ^^^^^^^\n\n");
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+            printf("    " ANSI_COLOR_RED "^^^^^^^" ANSI_COLOR_RESET "\n\n");
             errors = TRUE_BOOL;
         }
         else {
@@ -272,8 +309,6 @@ int genAsn(assignment *p, int indents) {
         }
     }
 
-    // TODO read list of errors from exp and print and free
-
     free(p);
     return 0;
 }
@@ -283,7 +318,7 @@ int genIf(ifState *p, int indents) {
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
         printf("\tif %s then ... end ; <-- If conditional must be of type BOOL\n", exp->inStr);
         printf("\t   ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
@@ -301,7 +336,15 @@ int genIf(ifState *p, int indents) {
         output = line;
     }
 
-    // TODO read list of errors from exp and print and free
+    // print the expression's errors
+    if (exp->errors) {
+        char *smt;
+        if ((smt = malloc(strlen("if ") + strlen(exp->inStr) + strlen(" then ... end ;"))) == NULL) {}
+        strcpy(smt, "if ");
+        strcat(smt, exp->inStr);
+        strcat(smt, " then ... end ;");
+        printExpErrors(smt, strlen("if "), exp->errors);
+    }
 
     genSmts(p->thenC, indents+1);
 
@@ -340,7 +383,7 @@ int genWhile(whileState *p, int indents) {
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
         printf("\twhile %s do ... end ; <-- While conditional must be of type BOOL\n\n", exp->inStr);
         printf("\t      ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
@@ -358,7 +401,15 @@ int genWhile(whileState *p, int indents) {
         output = line;
     }
 
-    // TODO read list of errors from exp and print and free
+    // print the expression's errors
+    if (exp->errors) {
+        char *smt;
+        if ((smt = malloc(strlen("while ") + strlen(exp->inStr) + strlen(" then ... end ;"))) == NULL) {}
+        strcpy(smt, "while ");
+        strcat(smt, exp->inStr);
+        strcat(smt, " then ... end ;");
+        printExpErrors(smt, strlen("while "), exp->errors);
+    }
 
     genSmts(p->doC, indents+1);
 
@@ -379,12 +430,20 @@ int genWrite(exp *p, int indents) {
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
         printf("\twriteInt %s ; <-- Write expression must be of type INT\n", exp->inStr);
         printf("\t         ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
 
-    // TODO read list of errors from exp and print and free
+    // print the expression's errors
+    if (exp->errors) {
+        char *smt;
+        if ((smt = malloc(strlen("writeInt ") + strlen(exp->inStr) + strlen(" ;"))) == NULL) {}
+        strcpy(smt, "while ");
+        strcat(smt, exp->inStr);
+        strcat(smt, " ;");
+        printExpErrors(smt, strlen("writeInt "), exp->errors);
+    }
 
     struct outputLine *line;
     if ((line = malloc(sizeof(outputLine))) == NULL) {}
