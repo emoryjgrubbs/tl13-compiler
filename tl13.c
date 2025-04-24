@@ -5,13 +5,11 @@
 #include "tl13.h"
 
 // mostly unnessesary, but for making output easier to read
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
-#define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+#define ANSI_COLOR_RED          "\x1b[31m"
+#define ANSI_COLOR_LIGHT_RED    "\x1b[91m"
+#define ANSI_COLOR_YELLOW       "\x1b[33m"
+#define ANSI_COLOR_LIGHT_YELLOW "\x1b[93m"
+#define ANSI_COLOR_RESET        "\x1b[0m"
 
 typedef struct tblEntry {
     char *id;
@@ -112,13 +110,13 @@ int genDecls(declaration *p) {
         if (p->type == ent->varType) {
             printf("\tvar %s as %s ; <-- Duplicate delcaration of previously declared\n", p->id, declType);
             printf("\t    ");
-            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
         }
         else {
             printf("\tvar %s as %s ; <-- Conflicting delcaration of previously declared\n", p->id, declType);
             printf("\t    ");
-            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
         }
         errors = TRUE_BOOL;
@@ -188,7 +186,7 @@ int printExpErrors(char *smt, int smtPlace, error *err) {
     printf("\t%s <-- %s\n\t", smt, err->info);
     for (int i = 0; i < smtPlace; i++) { printf(" "); }
     for (int i = 0; i < err->place; i++ ) { printf(" "); }
-    for (int i = 0; i < err->len; i++ ) { printf(ANSI_COLOR_RED "^"); }
+    for (int i = 0; i < err->len; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
     printf(ANSI_COLOR_RESET"\n\n");
     return 0;
 }
@@ -213,7 +211,7 @@ int genAsn(assignment *p, int indents) {
         }
         printf("\t%s := %s ; <-- Assigning %s to undeclared\n", p->id, exp->inStr, expTypeStr);
         printf("\t");
-        for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+        for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
 
@@ -259,9 +257,9 @@ int genAsn(assignment *p, int indents) {
             }
             printf("\t%s := %s ; <-- Assigning %s to %s\n", p->id, exp->inStr, expTypeStr, varTypeStr);
             printf("\t");
-            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("    ");
-            for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+            for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
             errors = TRUE_BOOL;
         }
@@ -298,8 +296,8 @@ int genAsn(assignment *p, int indents) {
         if (ent->varType != INT_TYPE) {
             printf("\t%s := readInt ; <-- Assigning implicit read INT to BOOL\n", p->id);
             printf("\t");
-            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
-            printf("    " ANSI_COLOR_RED "^^^^^^^" ANSI_COLOR_RESET "\n\n");
+            for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
+            printf("    " ANSI_COLOR_LIGHT_RED "^^^^^^^" ANSI_COLOR_RESET "\n\n");
             errors = TRUE_BOOL;
         }
         else {
@@ -333,7 +331,7 @@ int genIf(ifState *p, int indents) {
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
         printf("\tif %s then ... end ; <-- If conditional must be of type BOOL\n", exp->inStr);
         printf("\t   ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
@@ -398,7 +396,7 @@ int genWhile(whileState *p, int indents) {
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
         printf("\twhile %s do ... end ; <-- While conditional must be of type BOOL\n\n", exp->inStr);
         printf("\t      ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
@@ -445,7 +443,7 @@ int genWrite(exp *p, int indents) {
     if ((exp->type != -1) && (exp->type != INT_TYPE)) {
         printf("\twriteInt %s ; <-- Write expression must be of type INT\n", exp->inStr);
         printf("\t         ");
-        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
     }
