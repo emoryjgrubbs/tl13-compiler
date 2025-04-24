@@ -4,7 +4,7 @@
 #include <string.h>
 #include "tl13.h"
 
-// mostly unnessesary, but for making output easier to read
+// leaving yellow in incase i do warnings, but unlikely
 #define ANSI_COLOR_RED          "\x1b[31m"
 #define ANSI_COLOR_LIGHT_RED    "\x1b[91m"
 #define ANSI_COLOR_YELLOW       "\x1b[33m"
@@ -91,7 +91,8 @@ int genProg(program *p) {
         return 0;
     }
 
-    abort();
+    //abort();
+    return 1;
 }
 
 int genDecls(declaration *p) {
@@ -188,6 +189,8 @@ int printExpErrors(char *smt, int smtPlace, error *err) {
     for (int i = 0; i < err->place; i++ ) { printf(" "); }
     for (int i = 0; i < err->len; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
     printf(ANSI_COLOR_RESET"\n\n");
+
+    free(err);
     return 0;
 }
 
@@ -226,6 +229,7 @@ int genAsn(assignment *p, int indents) {
             printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
         }
 
+        free(exp);
         free(p);
         return 0;
     }
@@ -262,6 +266,7 @@ int genAsn(assignment *p, int indents) {
             for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
             errors = TRUE_BOOL;
+            free(exp);
         }
         else {
             struct outputLine *line;
@@ -387,6 +392,7 @@ int genIf(ifState *p, int indents) {
     EndElseLine->next = output;
     output = EndElseLine;
 
+    free(exp);
     free(p);
     return 0;
 }
@@ -434,6 +440,7 @@ int genWhile(whileState *p, int indents) {
     line->next = output;
     output = line;
 
+    free(exp);
     free(p);
     return 0;
 }
@@ -470,6 +477,7 @@ int genWrite(exp *p, int indents) {
     line->next = output;
     output = line;
 
+    free(exp);
     return 0;
 }
 
@@ -708,7 +716,8 @@ expInfo *genExp(exp* p) {
     strcat(outStr, sInfo2->outStr);
     info->outStr = outStr;
 
-    // TODO free sInfo1/2
+    free(sInfo1);
+    free(sInfo2);
     free(p);
     return info;
 }
@@ -810,7 +819,8 @@ expInfo *genSExp(sExp* p) {
     strcat(outStr, sInfo2->outStr);
     info->outStr = outStr;
 
-    // TODO free sInfo1/2
+    free(sInfo1);
+    free(sInfo2);
     free(p);
     return info;
 }
@@ -946,7 +956,8 @@ expInfo *genTerm(term *p) {
     strcat(outStr, sInfo2->outStr);
     info->outStr = outStr;
 
-    // TODO free sInfo1/2
+    free(sInfo1);
+    free(sInfo2);
     free(p);
     return info;
 }
@@ -1039,13 +1050,16 @@ expInfo *genFact(fact *p) {
             strcat(newInStr, info->inStr);
             strcat(newInStr, ")");
             char *newOutStr;
-            info->outStr = newOutStr;
+            if ((info->inStr = malloc(strlen(newInStr))) == NULL) {}
+            info->inStr = newInStr;
             if ((newOutStr = malloc(strlen("()") + sizeof(info->outStr))) == NULL) {}
             strcpy(newOutStr, "(");
             strcat(newOutStr, info->outStr);
             strcat(newOutStr, ")");
+            if ((info->outStr = malloc(strlen(newInStr))) == NULL) {}
             info->outStr = newOutStr;
-            break;
+
+            errPushPlace(info->errors, 1);
     }
     free(p);
     return info;
