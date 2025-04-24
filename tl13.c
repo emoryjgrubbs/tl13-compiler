@@ -429,7 +429,7 @@ int genWhile(whileState *p, int indents) {
 int genWrite(exp *p, int indents) {
     expInfo *exp = genExp(p);
 
-    if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
+    if ((exp->type != -1) && (exp->type != INT_TYPE)) {
         printf("\twriteInt %s ; <-- Write expression must be of type INT\n", exp->inStr);
         printf("\t         ");
         for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
