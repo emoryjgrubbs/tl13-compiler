@@ -68,9 +68,10 @@ int genProg(program *p) {
     // if there are no errors, print the output code
     if (!errors) {
         //print output
+        return 0;
     }
 
-    return 0;
+    abort();
 }
 
 int genDecls(declaration *p) {
@@ -87,11 +88,18 @@ int genDecls(declaration *p) {
     // declaration already exists, (INFORMAL TYPE RULES ENFORCEMENT)
     if (ent != NULL) {
         if (p->type == ent->varType) {
-            printf("var %s as %s ;\t<--\tDuplicate delcaration of previously declared", p->id, declType);
+            printf("\tvar %s as %s ; <-- Duplicate delcaration of previously declared\n", p->id, declType);
+            printf("\t    ");
+            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            printf("\n\n");
         }
         else {
-            printf("var %s as %s ;\t<--\tConflicting delcaration of previously declared", p->id, declType);
+            printf("\tvar %s as %s ; <-- Conflicting delcaration of previously declared\n", p->id, declType);
+            printf("\t    ");
+            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            printf("\n\n");
         }
+        errors = TRUE_BOOL;
 
         // generate next delcaration statement
         genDecls(p->next);
@@ -142,10 +150,6 @@ int genSmts(statement *p, int indents) {
             break;
         case WRITE_SMT:
             genWrite(p->smt.write, indents);
-            break;
-        default:
-            printf("");
-            /* ERROR */
     }
 
     // generate next statement
@@ -173,21 +177,24 @@ int genAsn(assignment *p, int indents) {
             default:
                 expTypeStr = "UNKNOWN";
         }
-        printf("%s := %s ;\t<--\tAssigning %s to undeclared\n", p->id, exp->inStr, expTypeStr);
+        printf("\t%s := %s ; <-- Assigning %s to undeclared\n", p->id, exp->inStr, expTypeStr);
+        printf("\t");
+        for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+        printf("\n\n");
+        errors = TRUE_BOOL;
 
+        if (exp->errors) {}
         // TODO read list of errors from exp and print and free
 
         free(p);
         return 0;
     }
 
-
-
     if (p->type == EXP_ASN){
         expInfo *exp = genExp(p->exp);
         if ((exp->type != -1) && (ent->varType != exp->type)) {
             char *varTypeStr;
-            switch (exp->type) {
+            switch (ent->varType) {
                 case INT_TYPE:
                     varTypeStr = "INT";
                     break;
@@ -208,7 +215,13 @@ int genAsn(assignment *p, int indents) {
                 default:
                     expTypeStr = "UNKNOWN";
             }
-            printf("%s := %s ;\t<--\tAssigning %s to %s\n", p->id, exp->inStr, expTypeStr, varTypeStr);
+            printf("\t%s := %s ; <-- Assigning %s to %s\n", p->id, exp->inStr, expTypeStr, varTypeStr);
+            printf("\t");
+            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            printf("    ");
+            for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+            printf("\n\n");
+            errors = TRUE_BOOL;
         }
         else {
             struct outputLine *line;
@@ -230,7 +243,11 @@ int genAsn(assignment *p, int indents) {
     }
     else if (p->type == READ_ASN){
         if (ent->varType != INT_TYPE) {
-            printf("%s := readInt ;\t<--\tAssigning implicit read INT to BOOL\n", p->id);
+            printf("\t%s := readInt ; <-- Assigning implicit read INT to BOOL\n", p->id);
+            printf("\t");
+            for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+            printf("    ^^^^^^^\n\n");
+            errors = TRUE_BOOL;
         }
         else {
             struct outputLine *printLine;
@@ -264,7 +281,11 @@ int genIf(ifState *p, int indents) {
     expInfo *exp = genExp(p->exp);
 
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
-        printf("if %s then ... end ;\t<--\tIf conditional must be of type BOOL", exp->inStr);
+        printf("\tif %s then ... end ; <-- If conditional must be of type BOOL\n", exp->inStr);
+        printf("\t   ");
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        printf("\n\n");
+        errors = TRUE_BOOL;
     }
     else {
         struct outputLine *line;
@@ -317,7 +338,11 @@ int genWhile(whileState *p, int indents) {
     expInfo *exp = genExp(p->exp);
 
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
-        printf("if %s then ... end ;\t<--\tWhile conditional must be of type BOOL", exp->inStr);
+        printf("\twhile %s do ... end ; <-- While conditional must be of type BOOL\n\n", exp->inStr);
+        printf("\t      ");
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        printf("\n\n");
+        errors = TRUE_BOOL;
     }
     else {
         struct outputLine *line;
@@ -349,10 +374,14 @@ int genWhile(whileState *p, int indents) {
     return 0;
 }
 int genWrite(exp *p, int indents) {
-    expInfo *exp = genExp(p->exp);
+    expInfo *exp = genExp(p);
 
     if ((exp->type != -1) && (exp->type != BOOL_TYPE)) {
-        printf("writeInt %s ;\t<--\tWrite expression must be of type INT", exp->inStr);
+        printf("\twriteInt %s ; <-- Write expression must be of type INT\n", exp->inStr);
+        printf("\t         ");
+        for (int i = 0; i < strlen(exp->inStr); i++) { printf("^"); }
+        printf("\n\n");
+        errors = TRUE_BOOL;
     }
 
     // TODO read list of errors from exp and print and free
@@ -381,6 +410,7 @@ int errCat(error *p1, error *p2) {
 
 expInfo *genExp(exp* p) {
     struct expInfo *info;
+    if ((info = malloc(sizeof(expInfo))) == NULL) {}
     if (!p) {
         info->type = -1;
         info->inStr = "";
@@ -421,7 +451,7 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case NEQUAL_OP:
             inOp = " != ";
@@ -442,7 +472,7 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case LT_OP:
             inOp = " < ";
@@ -463,7 +493,7 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case GT_OP:
             inOp = " > ";
@@ -484,7 +514,7 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case LTE_OP:
             inOp = " <= ";
@@ -505,7 +535,7 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case GTE_OP:
             inOp = " >= ";
@@ -526,14 +556,13 @@ expInfo *genExp(exp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case NO_EXP_OP:
             inOp = "";
             outOp = "";
             type = sInfo1->type;
-            info-> errors = sInfo1->errors;
-            break;
+            info->errors = sInfo1->errors;
     }
     // build info
     info->type = type;
@@ -543,17 +572,19 @@ expInfo *genExp(exp* p) {
     strcat(inStr, sInfo2->inStr);
     info->inStr = inStr;
     if ((outStr = malloc(strlen(sInfo1->outStr) + strlen(outOp) + strlen(sInfo2->outStr))) == NULL) {}
-    strcpy(inStr, sInfo1->outStr);
-    strcat(inStr, outOp);
-    strcat(inStr, sInfo2->outStr);
+    strcpy(outStr, sInfo1->outStr);
+    strcat(outStr, outOp);
+    strcat(outStr, sInfo2->outStr);
     info->outStr = outStr;
 
+    // TODO free sInfo1/2
     free(p);
     return info;
 }
 
 expInfo *genSExp(sExp* p) {
     struct expInfo *info;
+    if ((info = malloc(sizeof(expInfo))) == NULL) {}
     if (!p) {
         info->type = -1;
         info->inStr = "";
@@ -592,7 +623,7 @@ expInfo *genSExp(sExp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case MINUS_OP:
             op = " - ";
@@ -612,12 +643,12 @@ expInfo *genSExp(sExp* p) {
                 err->next = sInfo2->errors;
                 info->errors = err;
             }
-            else { info-> errors = sInfo2->errors; }
+            else { info->errors = sInfo2->errors; }
             break;
         case NO_SEXP_OP:
             op = "";
             type = sInfo1->type;
-            info-> errors = sInfo1->errors;
+            info->errors = sInfo1->errors;
     }
     // build info
     info->type = type;
@@ -627,17 +658,19 @@ expInfo *genSExp(sExp* p) {
     strcat(inStr, sInfo2->inStr);
     info->inStr = inStr;
     if ((outStr = malloc(strlen(sInfo1->outStr) + strlen(op) + strlen(sInfo2->outStr))) == NULL) {}
-    strcpy(inStr, sInfo1->outStr);
-    strcat(inStr, op);
-    strcat(inStr, sInfo2->outStr);
+    strcpy(outStr, sInfo1->outStr);
+    strcat(outStr, op);
+    strcat(outStr, sInfo2->outStr);
     info->outStr = outStr;
 
+    // TODO free sInfo1/2
     free(p);
     return info;
 }
 
 expInfo *genTerm(term *p) {
     struct expInfo *info;
+    if ((info = malloc(sizeof(expInfo))) == NULL) {}
     if (!p) {
         info->type = -1;
         info->inStr = "";
@@ -645,26 +678,103 @@ expInfo *genTerm(term *p) {
         info->errors = NULL;
         return info;
     }
+    char *inStr;
+    char *outStr;
+    char *inOp;
+    char *outOp;
     int type;
-    int factType;
+    struct expInfo *sInfo1 = genFact(p->factOne);
+    struct expInfo *sInfo2 = genFact(p->factTwo);
+    // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+    errCat(sInfo2->errors, sInfo1->errors);
+    int side = 0;
+    struct error *err;
+    if ((sInfo1->type != -1) && (sInfo1->type == BOOL_TYPE)) { side += 1; }
+    if ((sInfo2->type != -1) && (sInfo2->type == BOOL_TYPE)) { side += 2; }
     switch (p->op) {
         case MULT_OP:
-            factType = genFact(p->factOne);
-            if ((factType != -1) && (factType == BOOL_TYPE)) {
-                struct error *err;
-                if ((err = malloc(sizeof(error))) == NULL) {}
-                err->info = "Left multiplication operand must be of type INT";
-                err->next = errors;
-                errors = err;
-            }
-            printf(" * ");
-            factType = genFact(p->factTwo);
+            inOp = " * ";
+            inOp = " * ";
             type = INT_TYPE;
+            if (side > 0) {
+                if ((err = malloc(sizeof(error))) == NULL) {}
+                switch (side) {
+                    case 1:
+                        err->info = "Left multiplication operand must be of type INT";
+                        break;
+                    case 2:
+                        err->info = "Right multiplication operand must be of type INT";
+                        break;
+                    case 3:
+                        err->info = "Left & Right multiplication operand must be of type INT";
+                }
+                err->next = sInfo2->errors;
+                info->errors = err;
+            }
+            else { info-> errors = sInfo2->errors; }
             break;
         case DIV_OP:
+            inOp = " div ";
+            inOp = " / ";
+            type = INT_TYPE;
+            if (side > 0) {
+                if ((err = malloc(sizeof(error))) == NULL) {}
+                switch (side) {
+                    case 1:
+                        err->info = "Left division operand must be of type INT";
+                        break;
+                    case 2:
+                        err->info = "Right division operand must be of type INT";
+                        break;
+                    case 3:
+                        err->info = "Left & Right division operand must be of type INT";
+                }
+                err->next = sInfo2->errors;
+                info->errors = err;
+            }
+            else { info-> errors = sInfo2->errors; }
+            break;
         case MOD_OP:
+            inOp = " mod ";
+            inOp = " % ";
+            type = INT_TYPE;
+            if (side > 0) {
+                if ((err = malloc(sizeof(error))) == NULL) {}
+                switch (side) {
+                    case 1:
+                        err->info = "Left modlulo operand must be of type INT";
+                        break;
+                    case 2:
+                        err->info = "Right modlulo operand must be of type INT";
+                        break;
+                    case 3:
+                        err->info = "Left & Right modlulo operand must be of type INT";
+                }
+                err->next = sInfo2->errors;
+                info->errors = err;
+            }
+            else { info-> errors = sInfo2->errors; }
+            break;
         case NO_TERM_OP:
+            inOp = "";
+            outOp = "";
+            type = sInfo1->type;
+            info-> errors = sInfo1->errors;
     }
+    // build info
+    info->type = type;
+    if ((inStr = malloc(strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr))) == NULL) {}
+    strcpy(inStr, sInfo1->inStr);
+    strcat(inStr, inOp);
+    strcat(inStr, sInfo2->inStr);
+    info->inStr = inStr;
+    if ((outStr = malloc(strlen(sInfo1->outStr) + strlen(outOp) + strlen(sInfo2->outStr))) == NULL) {}
+    strcpy(outStr, sInfo1->outStr);
+    strcat(outStr, outOp);
+    strcat(outStr, sInfo2->outStr);
+    info->outStr = outStr;
+
+    // TODO free sInfo1/2
     free(p);
     return info;
 }
@@ -672,61 +782,95 @@ expInfo *genTerm(term *p) {
 expInfo *genFact(fact *p) {
     struct expInfo *info;
     if (!p) {
+        if ((info = malloc(sizeof(expInfo))) == NULL) {}
         info->type = -1;
         info->inStr = "";
         info->outStr = "";
         info->errors = NULL;
         return info;
     }
-    int type;
     switch (p->type) {
         case ID_FACT:
-            printf("%s",p->value.id);
+            if ((info = malloc(sizeof(expInfo))) == NULL) {}
             struct tblEntry *ent;
             HASH_FIND_STR(entries, p->value.id, ent);
             if (ent != NULL) {
-                type = ent->varType;
+                info->type = ent->varType;
+                info->inStr = p->value.id;
+                info->outStr = p->value.id;
+                info->errors = NULL;
                 if (ent->initialized == FALSE_BOOL) {
+                    /* TODO make warning? or just delete
                     struct error *err;
                     if ((err = malloc(sizeof(error))) == NULL) {}
-                    char *message = "Use of uninitialized: ";
-                    char *info;
-                    if ((info = malloc(strlen(message) + sizeof(p->value.id))) == NULL) {}
-                    strcpy(info, message);
-                    strcat(info, p->value.id);
-                    err->info = info;
-                    err->next = errors;
-                    errors = err;
+                    err->info = "Use of uninitialized";
+                    err->next = NULL;
+                    info->errors = err;
+                    */
                 }
             }
             else {
-                type = -1;
+                info->type = -1;
+                info->inStr = p->value.id;
+                info->outStr = p->value.id;
                 struct error *err;
                 if ((err = malloc(sizeof(error))) == NULL) {}
+                char *str;
                 char *message = "Use of undeclared: ";
-                char *info;
-                if ((info = malloc(strlen(message) + sizeof(p->value.id))) == NULL) {}
-                strcpy(info, message);
-                strcat(info, p->value.id);
-                err->info = info;
-                err->next = errors;
-                errors = err;
+                if ((str = malloc(strlen(message) + sizeof(p->value.id))) == NULL) {}
+                strcpy(str, message);
+                strcat(str, p->value.id);
+                err->info = str;
+                err->next = NULL;
+                info->errors = err;
             }
             break;
         case NUM_FACT:
-            printf("%d",p->value.num);
-            type = INT_TYPE;
+            if ((info = malloc(sizeof(expInfo))) == NULL) {}
+            info->type = INT_TYPE;
+            int size;
+            if (p->value.num > 0) { size = 0; }
+            else { size = 1; }
+            int remaining = p->value.num;
+            // choose between a few more instructions or a few more bytes of storage per
+            while (remaining) {
+                remaining /= 10;
+                size += 1;
+            }
+            if ((info->inStr = malloc(size)) == NULL) {}
+            if ((info->outStr = malloc(size)) == NULL) {}
+            sprintf(info->inStr, "%d", p->value.num);
+            sprintf(info->outStr, "%d", p->value.num);
+            info->errors = NULL;
             break;
         case BOOL_FACT:
-            if (p->value.boole == TRUE_BOOL) { printf("true"); }
-            else if (p->value.boole == FALSE_BOOL) { printf("false"); }
+            if ((info = malloc(sizeof(expInfo))) == NULL) {}
+            info->type = BOOL_TYPE;
+            if (p->value.boole == TRUE_BOOL) {
+                info->inStr = "true";
+                info->outStr = "true";
+            }
+            else if (p->value.boole == FALSE_BOOL) {
+                info->inStr = "true";
+                info->outStr = "true";
+            }
             else { /* error */ }
-            type = BOOL_TYPE;
+            info->errors = NULL;
             break;
         case SUB_EXP_FACT:
-            printf("(");
-            type = genExp(p->value.subExp);
-            printf(")");
+            info = genExp(p->value.subExp);
+            char *newInStr;
+            if ((newInStr = malloc(strlen("()") + sizeof(info->inStr))) == NULL) {}
+            strcpy(newInStr, "(");
+            strcat(newInStr, info->inStr);
+            strcat(newInStr, ")");
+            char *newOutStr;
+            info->outStr = newOutStr;
+            if ((newOutStr = malloc(strlen("()") + sizeof(info->outStr))) == NULL) {}
+            strcpy(newOutStr, "(");
+            strcat(newOutStr, info->outStr);
+            strcat(newOutStr, ")");
+            info->outStr = newOutStr;
             break;
     }
     free(p);
