@@ -199,7 +199,7 @@ int genAsn(assignment *p, int indents) {
         }
         printf("\t%s := %s ; <-- Assigning %s to undeclared\n", p->id, exp->inStr, expTypeStr);
         printf("\t");
-        for (int i = 0; i < strlen(p->id); i++) { printf("^"); }
+        for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors = TRUE_BOOL;
 
@@ -469,6 +469,13 @@ int errCat(error *p1, error *p2) {
     return 0;
 }
 
+int errPushPlace(error *p, int leftLen) {
+    if (!p) { return 0; }
+    p->place += leftLen;
+    errPushPlace(p->next, leftLen);
+    return 0;
+}
+
 expInfo *genExp(exp* p) {
     struct expInfo *info;
     if ((info = malloc(sizeof(expInfo))) == NULL) {}
@@ -486,8 +493,6 @@ expInfo *genExp(exp* p) {
     int type;
     struct expInfo *sInfo1 = genSExp(p->sExpOne);
     struct expInfo *sInfo2 = genSExp(p->sExpTwo);
-    // 2 before 1 to print errors in order seen (printed recursively, bottom up)
-    errCat(sInfo2->errors, sInfo1->errors);
     int side = 0;
     struct error *err;
     if ((sInfo1->type != -1) && (sInfo1->type == BOOL_TYPE)) { side += 1; }
@@ -497,6 +502,9 @@ expInfo *genExp(exp* p) {
             inOp = " = ";
             outOp = " == ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -524,6 +532,9 @@ expInfo *genExp(exp* p) {
             inOp = " != ";
             outOp = " != ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -551,6 +562,9 @@ expInfo *genExp(exp* p) {
             inOp = " < ";
             outOp = " < ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -578,6 +592,9 @@ expInfo *genExp(exp* p) {
             inOp = " > ";
             outOp = " > ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -605,6 +622,9 @@ expInfo *genExp(exp* p) {
             inOp = " <= ";
             outOp = " <= ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -632,6 +652,9 @@ expInfo *genExp(exp* p) {
             inOp = " >= ";
             outOp = " >= ";
             type = BOOL_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -695,8 +718,6 @@ expInfo *genSExp(sExp* p) {
     int type;
     struct expInfo *sInfo1 = genTerm(p->termOne);
     struct expInfo *sInfo2 = genTerm(p->termTwo);
-    // 2 before 1 to print errors in order seen (printed recursively, bottom up)
-    errCat(sInfo2->errors, sInfo1->errors);
     int side = 0;
     struct error *err;
     if ((sInfo1->type != -1) && (sInfo1->type == BOOL_TYPE)) { side += 1; }
@@ -705,6 +726,9 @@ expInfo *genSExp(sExp* p) {
         case PLUS_OP:
             op = " + ";
             type = INT_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(op));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -731,6 +755,9 @@ expInfo *genSExp(sExp* p) {
         case MINUS_OP:
             op = " - ";
             type = INT_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(op));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -794,8 +821,6 @@ expInfo *genTerm(term *p) {
     int type;
     struct expInfo *sInfo1 = genFact(p->factOne);
     struct expInfo *sInfo2 = genFact(p->factTwo);
-    // 2 before 1 to print errors in order seen (printed recursively, bottom up)
-    errCat(sInfo2->errors, sInfo1->errors);
     int side = 0;
     struct error *err;
     if ((sInfo1->type != -1) && (sInfo1->type == BOOL_TYPE)) { side += 1; }
@@ -805,6 +830,9 @@ expInfo *genTerm(term *p) {
             inOp = " * ";
             inOp = " * ";
             type = INT_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -832,6 +860,9 @@ expInfo *genTerm(term *p) {
             inOp = " div ";
             inOp = " / ";
             type = INT_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
@@ -859,6 +890,9 @@ expInfo *genTerm(term *p) {
             inOp = " mod ";
             inOp = " % ";
             type = INT_TYPE;
+            errPushPlace(sInfo2->errors, strlen(sInfo1->inStr) + strlen(inOp));
+            // 2 before 1 to print errors in order seen (printed recursively, bottom up)
+            errCat(sInfo2->errors, sInfo1->errors);
             if (side > 0) {
                 if ((err = malloc(sizeof(error))) == NULL) {}
                 switch (side) {
