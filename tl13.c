@@ -36,13 +36,26 @@ outputLine *output = NULL;
 
 boolVal errors = FALSE_BOOL;
 
+int writeOutput(outputLine *line) {
+    if (!line) { return 0; }
+    writeOutput(line->next);
+
+    for (int i = 0; i < line->indents; i++ ) { printf("\t"); }
+    // not really sure what's up but adding new lines on the outputLine
+    //  strs adds a 1 after the if statement str when printing here
+    printf("%s\n", line->str);
+
+    free(line);
+    return 0;
+}
+
 int genProg(program *p) {
     if (!p) { return 0; }
 
     struct outputLine *headerLine;
     if ((headerLine = malloc(sizeof(outputLine))) == NULL) {}
     // generic includes and main function
-    headerLine->str = "#include <stdio.h>\n#include <stdbool.h>\nint main(void) {\n";
+    headerLine->str = "#include <stdio.h>\n#include <stdbool.h>\nint main(void) {";
     headerLine->indents = 0;
     // shouldn't be nessesary
     headerLine->next = output;
@@ -57,7 +70,7 @@ int genProg(program *p) {
     struct outputLine *footerLine;
     if ((footerLine = malloc(sizeof(outputLine))) == NULL) {}
     // generic includes and main function
-    footerLine->str = "\treturn 0;\n}\n";
+    footerLine->str = "\treturn 0;\n}";
     footerLine->indents = 0;
     footerLine->next = output;
     output = footerLine;
@@ -76,7 +89,7 @@ int genProg(program *p) {
 
     // if there are no errors, print the output code
     if (!errors) {
-        //print output
+        writeOutput(output);
         return 0;
     }
 
@@ -128,10 +141,11 @@ int genDecls(declaration *p) {
     struct outputLine *line;
     if ((line = malloc(sizeof(outputLine))) == NULL) {}
     char *str;
-    if ((str = malloc(strlen(declType) + sizeof(p->id) + strlen(";\n"))) == NULL) {}
+    if ((str = malloc(strlen(declType) + sizeof(p->id) + strlen(" ;"))) == NULL) {}
     strcpy(str, declType);
+    strcat(str, " ");
     strcat(str, p->id);
-    strcat(str, ";\n");
+    strcat(str, ";");
     line->str = str;
     line->indents = 1;
     line->next = output;
@@ -255,11 +269,11 @@ int genAsn(assignment *p, int indents) {
             struct outputLine *line;
             if ((line = malloc(sizeof(outputLine))) == NULL) {}
             char *str;
-            if ((str = malloc(sizeof(p->id) + strlen(" = ") + strlen(exp->outStr) + strlen(";\n"))) == NULL) {}
+            if ((str = malloc(sizeof(p->id) + strlen(" = ") + strlen(exp->outStr) + strlen(";"))) == NULL) {}
             strcpy(str, p->id);
             strcat(str, " = ");
             strcat(str, exp->outStr);
-            strcat(str, ";\n");
+            strcat(str, ";");
             line->str = str;
             line->indents = indents;
             line->next = output;
@@ -291,7 +305,7 @@ int genAsn(assignment *p, int indents) {
         else {
             struct outputLine *printLine;
             if ((printLine = malloc(sizeof(outputLine))) == NULL) {}
-            printLine->str = "printf(\"Enter a number: \");\n";
+            printLine->str = "printf(\"Enter a number: \");";
             printLine->indents = indents;
             printLine->next = output;
             output = printLine;
@@ -299,11 +313,10 @@ int genAsn(assignment *p, int indents) {
             struct outputLine *scanLine;
             if ((scanLine = malloc(sizeof(outputLine))) == NULL) {}
             char *str;
-            if ((str = malloc(sizeof(p->id) + strlen(" = scanf(\"%%d\", &") + sizeof(p->id) + strlen(");\n"))) == NULL) {}
-            strcpy(str, p->id);
-            strcat(str, " = scanf(\"%%d\", &");
+            if ((str = malloc(strlen("scanf(\"%d\", &") + sizeof(p->id) + strlen(");"))) == NULL) {}
+            strcpy(str, "scanf(\"%d\", &");
             strcat(str, p->id);
-            strcat(str, ");\n");
+            strcat(str, ");");
             scanLine->str = str;
             scanLine->indents = indents;
             scanLine->next = output;
@@ -328,10 +341,10 @@ int genIf(ifState *p, int indents) {
         struct outputLine *line;
         if ((line = malloc(sizeof(outputLine))) == NULL) {}
         char *str;
-        if ((str = malloc(strlen("if (") + sizeof(exp->outStr) + strlen(") {\n"))) == NULL) {}
+        if ((str = malloc(strlen("if (") + sizeof(exp->outStr) + strlen(")"))) == NULL) {}
         strcpy(str, "if (");
         strcat(str, exp->outStr);
-        strcat(str, ") {\n");
+        strcat(str, ") {");
         line->str = str;
         line->indents = indents;
         line->next = output;
@@ -352,7 +365,7 @@ int genIf(ifState *p, int indents) {
 
     struct outputLine *EndIfLine;
     if ((EndIfLine = malloc(sizeof(outputLine))) == NULL) {}
-    EndIfLine->str = "}\n";
+    EndIfLine->str = "}";
     EndIfLine->indents = indents;
     EndIfLine->next = output;
     output = EndIfLine;
@@ -362,7 +375,7 @@ int genIf(ifState *p, int indents) {
 
     struct outputLine *BeginElseLine;
     if ((BeginElseLine = malloc(sizeof(outputLine))) == NULL) {}
-    BeginElseLine->str = "else {\n";
+    BeginElseLine->str = "else {";
     BeginElseLine->indents = indents;
     BeginElseLine->next = output;
     output = BeginElseLine;
@@ -371,7 +384,7 @@ int genIf(ifState *p, int indents) {
 
     struct outputLine *EndElseLine;
     if ((EndElseLine = malloc(sizeof(outputLine))) == NULL) {}
-    EndElseLine->str = "}\n";
+    EndElseLine->str = "}";
     EndElseLine->indents = indents;
     EndElseLine->next = output;
     output = EndElseLine;
@@ -393,10 +406,10 @@ int genWhile(whileState *p, int indents) {
         struct outputLine *line;
         if ((line = malloc(sizeof(outputLine))) == NULL) {}
         char *str;
-        if ((str = malloc(strlen("while (") + sizeof(exp->outStr) + strlen(") {\n"))) == NULL) {}
+        if ((str = malloc(strlen("while (") + sizeof(exp->outStr) + strlen(") {"))) == NULL) {}
         strcpy(str, "while (");
         strcat(str, exp->outStr);
-        strcat(str, ") {\n");
+        strcat(str, ") {");
         line->str = str;
         line->indents = indents;
         line->next = output;
@@ -418,7 +431,7 @@ int genWhile(whileState *p, int indents) {
     // build closing line
     struct outputLine *line;
     if ((line = malloc(sizeof(outputLine))) == NULL) {}
-    line->str = "}\n";
+    line->str = "}";
     line->indents = indents;
     line->next = output;
     output = line;
@@ -450,10 +463,10 @@ int genWrite(exp *p, int indents) {
     struct outputLine *line;
     if ((line = malloc(sizeof(outputLine))) == NULL) {}
     char *str;
-    if ((str = malloc(strlen("printf(\"%%d\\n\", ") + sizeof(exp->outStr) + strlen(");\n"))) == NULL) {}
-    strcpy(str, "printf(\"%%d\\n\", ");
+    if ((str = malloc(strlen("printf(\"%d\\n\", ") + sizeof(exp->outStr) + strlen(");"))) == NULL) {}
+    strcpy(str, "printf(\"%d\\n\", ");
     strcat(str, exp->outStr);
-    strcat(str, ");\n");
+    strcat(str, ");");
     line->str = str;
     line->indents = indents;
     line->next = output;
