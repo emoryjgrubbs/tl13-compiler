@@ -47,6 +47,14 @@ int writeOutput(outputLine *line) {
     return 0;
 }
 
+int freeOutput(outputLine *line) {
+    if (!line) { return 0; }
+    freeOutput(line->next);
+
+    free(line);
+    return 0;
+}
+
 int genProg(program *p) {
     if (!p) { return 0; }
 
@@ -89,6 +97,10 @@ int genProg(program *p) {
     if (!errors) {
         writeOutput(output);
         return 0;
+    }
+    else {
+        // free output since not freed while printing
+        freeOutput(output);
     }
 
     //abort();
