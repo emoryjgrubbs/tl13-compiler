@@ -199,7 +199,9 @@ int printExpErrors(char *smt, int smtPlace, error *err) {
     printf("\t%s <-- %s\n\t", smt, err->info);
     for (int i = 0; i < smtPlace; i++) { printf(" "); }
     for (int i = 0; i < err->place; i++ ) { printf(" "); }
-    for (int i = 0; i < err->len; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
+    for (int i = 0; i < err->len1; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
+    for (int i = 0; i < err->skip; i++ ) { printf(" "); }
+    for (int i = 0; i < err->len2; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
     printf(ANSI_COLOR_RESET"\n\n");
 
     free(err);
@@ -547,17 +549,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left equal operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right equal operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right equal operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -577,17 +585,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left not-equal operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right not-equal operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right not-equal operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -607,17 +621,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left less-than operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right less-than operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right less-than operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -637,17 +657,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left greater-than operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right greater-than operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right greater-than operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -667,17 +693,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left less-than-equal-to operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right less-than-equal-to operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right less-than-equal-to operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -697,17 +729,23 @@ expInfo *genExp(exp* p) {
                     case 1:
                         err->info = "Left greater-than-equal-to operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right greater-than-equal-to operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right greater-than-equal-to operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -772,17 +810,23 @@ expInfo *genSExp(sExp* p) {
                     case 1:
                         err->info = "Left addition operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right addition operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(op);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right addition operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(op) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(op);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -801,17 +845,23 @@ expInfo *genSExp(sExp* p) {
                     case 1:
                         err->info = "Left subtraction operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right subtraction operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(op);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right subtraction operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(op) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(op);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -877,17 +927,23 @@ expInfo *genTerm(term *p) {
                     case 1:
                         err->info = "Left multiplication operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right multiplication operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right multiplication operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -907,17 +963,23 @@ expInfo *genTerm(term *p) {
                     case 1:
                         err->info = "Left division operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right division operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right division operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -937,17 +999,23 @@ expInfo *genTerm(term *p) {
                     case 1:
                         err->info = "Left modlulo operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 2:
                         err->info = "Right modlulo operand must be of type INT";
                         err->place = strlen(sInfo1->inStr) + strlen(inOp);
-                        err->len = strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo2->inStr);
+                        err->skip = 0;
+                        err->len2 = 0;
                         break;
                     case 3:
                         err->info = "Left & Right modlulo operand must be of type INT";
                         err->place = 0;
-                        err->len = strlen(sInfo1->inStr) + strlen(inOp) + strlen(sInfo2->inStr);
+                        err->len1 = strlen(sInfo1->inStr);
+                        err->skip = strlen(inOp);
+                        err->len2 = strlen(sInfo2->inStr);
                 }
                 err->next = sInfo2->errors;
                 info->errors = err;
@@ -1022,7 +1090,9 @@ expInfo *genFact(fact *p) {
                 strcat(str, p->value.id);
                 err->info = str;
                 err->place = 0;
-                err->len = strlen(info->inStr);
+                err->len1 = strlen(info->inStr);
+                err->skip = 0;
+                err->len2 = 0;
                 err->next = NULL;
                 info->errors = err;
             }

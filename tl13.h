@@ -88,7 +88,9 @@ struct fact {
 typedef struct error {
     // int line;
     int place;
-    int len;
+    int len1;
+    int skip;
+    int len2;
     char *info;
 
     struct error *next;
