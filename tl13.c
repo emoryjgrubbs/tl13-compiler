@@ -32,7 +32,7 @@ typedef struct outputLine {
 
 outputLine *output = NULL;
 
-boolVal errors = FALSE_BOOL;
+boolVal errors = 0;
 
 int writeOutput(outputLine *line) {
     if (!line) { return 0; }
@@ -101,6 +101,7 @@ int genProg(program *p) {
     else {
         // free output since not freed while printing
         freeOutput(output);
+        printf("\tEncountered " ANSI_COLOR_LIGHT_RED "%d" ANSI_COLOR_RESET " errors\n", errors);
     }
 
     //abort();
@@ -132,7 +133,7 @@ int genDecls(declaration *p) {
             for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
         }
-        errors = TRUE_BOOL;
+        errors++;
 
         // generate next delcaration statement
         genDecls(p->next);
@@ -204,6 +205,8 @@ int printExpErrors(char *smt, int smtPlace, error *err) {
     for (int i = 0; i < err->len2; i++ ) { printf(ANSI_COLOR_LIGHT_RED "^"); }
     printf(ANSI_COLOR_RESET"\n\n");
 
+    errors++;
+
     free(err);
     return 0;
 }
@@ -230,7 +233,7 @@ int genAsn(assignment *p, int indents) {
         printf("\t");
         for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
-        errors = TRUE_BOOL;
+        errors++;
 
         // print the expression's errors
         if (exp->errors) {
@@ -241,7 +244,6 @@ int genAsn(assignment *p, int indents) {
             strcat(smt, exp->inStr);
             strcat(smt, " ;");
             printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
-            errors = TRUE_BOOL;
         }
 
         free(exp);
@@ -280,7 +282,7 @@ int genAsn(assignment *p, int indents) {
             printf("    ");
             for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
-            errors = TRUE_BOOL;
+            errors++;
             free(exp);
         }
         else {
@@ -310,7 +312,6 @@ int genAsn(assignment *p, int indents) {
             strcat(smt, exp->inStr);
             strcat(smt, " ;");
             printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
-            errors = TRUE_BOOL;
         }
     }
     else if (p->type == READ_ASN){
@@ -319,7 +320,7 @@ int genAsn(assignment *p, int indents) {
             printf("\t");
             for (int i = 0; i < strlen(p->id); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("    " ANSI_COLOR_LIGHT_RED "^^^^^^^" ANSI_COLOR_RESET "\n\n");
-            errors = TRUE_BOOL;
+            errors++;
         }
         else {
             struct outputLine *printLine;
@@ -354,7 +355,7 @@ int genIf(ifState *p, int indents) {
         printf("\t   ");
         for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
-        errors = TRUE_BOOL;
+        errors++;
     }
     else {
         struct outputLine *line;
@@ -378,7 +379,6 @@ int genIf(ifState *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " then ... end ;");
         printExpErrors(smt, strlen("if "), exp->errors);
-        errors = TRUE_BOOL;
     }
 
     genSmts(p->thenC, indents+1);
@@ -421,7 +421,7 @@ int genWhile(whileState *p, int indents) {
         printf("\t      ");
         for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
-        errors = TRUE_BOOL;
+        errors++;
     }
     else {
         struct outputLine *line;
@@ -445,7 +445,6 @@ int genWhile(whileState *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " then ... end ;");
         printExpErrors(smt, strlen("while "), exp->errors);
-        errors = TRUE_BOOL;
     }
 
     genSmts(p->doC, indents+1);
@@ -470,7 +469,7 @@ int genWrite(exp *p, int indents) {
         printf("\t         ");
         for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
-        errors = TRUE_BOOL;
+        errors++;
     }
 
     // print the expression's errors
@@ -481,7 +480,6 @@ int genWrite(exp *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " ;");
         printExpErrors(smt, strlen("writeInt "), exp->errors);
-        errors = TRUE_BOOL;
     }
 
     struct outputLine *line;
