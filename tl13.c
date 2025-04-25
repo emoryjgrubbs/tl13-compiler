@@ -239,6 +239,7 @@ int genAsn(assignment *p, int indents) {
             strcat(smt, exp->inStr);
             strcat(smt, " ;");
             printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
+            errors = TRUE_BOOL;
         }
 
         free(exp);
@@ -307,6 +308,7 @@ int genAsn(assignment *p, int indents) {
             strcat(smt, exp->inStr);
             strcat(smt, " ;");
             printExpErrors(smt, strlen(p->id) + strlen(" := "), exp->errors);
+            errors = TRUE_BOOL;
         }
     }
     else if (p->type == READ_ASN){
@@ -374,6 +376,7 @@ int genIf(ifState *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " then ... end ;");
         printExpErrors(smt, strlen("if "), exp->errors);
+        errors = TRUE_BOOL;
     }
 
     genSmts(p->thenC, indents+1);
@@ -440,6 +443,7 @@ int genWhile(whileState *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " then ... end ;");
         printExpErrors(smt, strlen("while "), exp->errors);
+        errors = TRUE_BOOL;
     }
 
     genSmts(p->doC, indents+1);
@@ -475,6 +479,7 @@ int genWrite(exp *p, int indents) {
         strcat(smt, exp->inStr);
         strcat(smt, " ;");
         printExpErrors(smt, strlen("writeInt "), exp->errors);
+        errors = TRUE_BOOL;
     }
 
     struct outputLine *line;
