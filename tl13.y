@@ -4,21 +4,24 @@
 int yylex(void);
 int yyerror(char *);
 
-int line = 1;
+extern int yylineno;
 
 program *buildP(declaration *decls, statement *smts);
-declaration *buildD(char *id, type type, declaration *next);
+declaration *buildD(int line, char *id, type type, declaration *next);
 statement *appendSmt(statement *ptr, statement *next);
 statement *buildS(smtType type, void *smt);
-assignment *buildA(asnType type, char* id, exp* exp);
-ifState *buildI(exp *exp, statement *thenC, statement *elseC);
-whileState *buildW(exp *exp, statement *doC);
+assignment *buildA(int line, asnType type, char* id, exp* exp);
+ifState *buildI(int line, exp *exp, statement *thenC, statement *elseC);
+whileState *buildWh(int line, exp *exp, statement *doC);
+writeState *buildWr(int line, exp *exp);
 exp *buildE(sExp *sExpOne, expOp op, sExp *sExpTwo);
 sExp *buildSE(term *termOne, sExpOp op, term *termTwo);
 term *buildT(fact *factOne, termOp op, fact *factTwo);
 fact *buildF(factType type, void *value);
 
 %}
+
+%locations
 
 // Symbols.
 %union { 
@@ -30,7 +33,8 @@ fact *buildF(factType type, void *value);
     statement   *sPtr;
     assignment  *aPtr; 
     ifState     *iPtr;
-    whileState  *wPtr;
+    whileState  *whPtr;
+    writeState  *wrPtr;
     exp         *ePtr;
     sExp        *sEPtr;
     term        *tPtr;
@@ -69,7 +73,6 @@ fact *buildF(factType type, void *value);
 %token BOOL
 %token WRITEINT
 %token READINT
-%token ENDL
 
 %start Program
 
@@ -79,81 +82,77 @@ fact *buildF(factType type, void *value);
 %type <sPtr> StatementSequence Statement ElseClause
 %type <aPtr> Assignment
 %type <iPtr> IfStatement
-%type <wPtr> WhileStatement
-%type <ePtr> Expression WriteInt
+%type <whPtr> WhileStatement
+%type <wrPtr> WriteInt
+%type <ePtr> Expression
 %type <sEPtr> SimpleExpression
 %type <tPtr> Term
 %type <fPtr> Factor
-%type <ival> PosEndL
 
 %%
 Program:
-    PROGRAM PosEndL Declarations BGN PosEndL StatementSequence END PosEndL { $$ = buildP($3, $6); genProg($$); }
+    PROGRAM Declarations BGN StatementSequence END { $$ = buildP($2, $4); genProg($$); }
     ;
 Declarations:
-    VAR PosEndL IDENT PosEndL AS PosEndL Type SC PosEndL Declarations   { $$ = buildD($3, $7, $10); }
+    VAR IDENT AS Type SC Declarations   { $$ = buildD((@1.first_line), $2, $4, $6); }
     | /* epsilon */                     { $$ = NULL; }
     ;
 Type:
-    INT PosEndL     { $$ = INT_TYPE; }
-    | BOOL PosEndL  { $$ = BOOL_TYPE; }
+    INT     { $$ = INT_TYPE; }
+    | BOOL  { $$ = BOOL_TYPE; }
     ;
 StatementSequence:
-    Statement SC PosEndL StatementSequence  { $$ = appendSmt($1, $4); } // modify $1 statement struct to have $3 as *next
+    Statement SC StatementSequence  { $$ = appendSmt($1, $3); } // modify $1 statement struct to have $3 as *next
     | /* epsilon */                 { $$ = NULL; }
     ;
 Statement:
-    Assignment PosEndL          { $$ = buildS(ASN_SMT, $1); }
-    | IfStatement PosEndL       { $$ = buildS(IF_SMT, $1); }
-    | WhileStatement PosEndL    { $$ = buildS(WHILE_SMT, $1); }
-    | WriteInt PosEndL          { $$ = buildS(WRITE_SMT, $1); }
+    Assignment          { $$ = buildS(ASN_SMT, $1); }
+    | IfStatement       { $$ = buildS(IF_SMT, $1); }
+    | WhileStatement    { $$ = buildS(WHILE_SMT, $1); }
+    | WriteInt          { $$ = buildS(WRITE_SMT, $1); }
     ;
 Assignment:
-    IDENT PosEndL ASGN PosEndL Expression   { $$ = buildA(EXP_ASN, $1, $5); }
-    | IDENT PosEndL ASGN PosEndL READINT PosEndL    { $$ = buildA(READ_ASN, $1, NULL); } // pass dummy param to avoid overcomplicating with variadic
+    IDENT ASGN Expression   { $$ = buildA(@1.first_line, EXP_ASN, $1, $3); }
+    | IDENT ASGN READINT    { $$ = buildA(@1.first_line, READ_ASN, $1, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 IfStatement:
-    IF PosEndL Expression THEN PosEndL StatementSequence ElseClause END PosEndL { $$ = buildI($3, $6, $7); }
+    IF Expression THEN StatementSequence ElseClause END { $$ = buildI(@1.first_line, $2, $4, $5); }
     ;
 ElseClause:
-    ELSE PosEndL StatementSequence  { $$ = $3; }
+    ELSE StatementSequence  { $$ = $2; }
     | /* epsilon */         { $$ = NULL; }
     ;
 WhileStatement:
-    WHILE PosEndL Expression DO PosEndL StatementSequence END PosEndL   { $$ = buildW($3, $6); }
+    WHILE Expression DO StatementSequence END   { $$ = buildWh(@1.first_line, $2, $4); }
     ;
 WriteInt:
-    WRITEINT PosEndL Expression { $$ = $3; }
+    WRITEINT Expression { $$ = buildWr(@1.first_line, $2); }
     ;
 Expression:
-    SimpleExpression EQUAL PosEndL SimpleExpression     { $$ = buildE($1, EQUAL_OP, $4); }
-    | SimpleExpression NEQUAL PosEndL SimpleExpression  { $$ = buildE($1, NEQUAL_OP, $4); }
-    | SimpleExpression LT PosEndL SimpleExpression      { $$ = buildE($1, LT_OP, $4); }
-    | SimpleExpression GT PosEndL SimpleExpression      { $$ = buildE($1, GT_OP, $4); }
-    | SimpleExpression LTE PosEndL SimpleExpression     { $$ = buildE($1, LTE_OP, $4); }
-    | SimpleExpression GTE PosEndL SimpleExpression     { $$ = buildE($1, GTE_OP, $4); }
+    SimpleExpression EQUAL SimpleExpression     { $$ = buildE($1, EQUAL_OP, $3); }
+    | SimpleExpression NEQUAL SimpleExpression  { $$ = buildE($1, NEQUAL_OP, $3); }
+    | SimpleExpression LT SimpleExpression      { $$ = buildE($1, LT_OP, $3); }
+    | SimpleExpression GT SimpleExpression      { $$ = buildE($1, GT_OP, $3); }
+    | SimpleExpression LTE SimpleExpression     { $$ = buildE($1, LTE_OP, $3); }
+    | SimpleExpression GTE SimpleExpression     { $$ = buildE($1, GTE_OP, $3); }
     | SimpleExpression                          { $$ = buildE($1, NO_EXP_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 SimpleExpression:
-    Term PLUS PosEndL Term      { $$ = buildSE($1, PLUS_OP, $4); }
-    | Term DASH PosEndL Term    { $$ = buildSE($1, MINUS_OP, $4); }
+    Term PLUS Term      { $$ = buildSE($1, PLUS_OP, $3); }
+    | Term DASH Term    { $$ = buildSE($1, MINUS_OP, $3); }
     | Term              { $$ = buildSE($1, NO_SEXP_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 Term:
-    Factor MULT PosEndL Factor  { $$ = buildT($1, MULT_OP, $4); }
-    | Factor DIV PosEndL Factor { $$ = buildT($1, DIV_OP, $4); }
-    | Factor MOD PosEndL Factor { $$ = buildT($1, MOD_OP, $4); }
+    Factor MULT Factor  { $$ = buildT($1, MULT_OP, $3); }
+    | Factor DIV Factor { $$ = buildT($1, DIV_OP, $3); }
+    | Factor MOD Factor { $$ = buildT($1, MOD_OP, $3); }
     | Factor            { $$ = buildT($1, NO_TERM_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 Factor:
-    IDENT PosEndL               { $$ = buildF(ID_FACT, $1); }
-    | NUMBER PosEndL            { $$ = buildF(NUM_FACT, $1); }
-    | BOOLEAN PosEndL           { $$ = buildF(BOOL_FACT, $1); }
-    | LP PosEndL Expression RP PosEndL  { $$ = buildF(SUB_EXP_FACT, $3); }
-    ;
-PosEndL:
-    ENDL PosEndL
-    | /* epsilon */
+    IDENT               { $$ = buildF(ID_FACT, $1); }
+    | NUMBER            { $$ = buildF(NUM_FACT, $1); }
+    | BOOLEAN           { $$ = buildF(BOOL_FACT, $1); }
+    | LP Expression RP  { $$ = buildF(SUB_EXP_FACT, $2); }
     ;
 %%
 
@@ -167,11 +166,12 @@ program *buildP(declaration *decls, statement *smts) {
     return ptr;
 }
 
-declaration *buildD(char *id, type type, declaration *next) {
+declaration *buildD(int line, char *id, type type, declaration *next) {
     declaration *ptr;
 	if ((ptr = malloc(sizeof(declaration))) == NULL) {
 		yyerror("out of memory");
 	}
+    ptr->line = line;
     ptr->id = id;
     ptr->type = type;
     ptr->next = next;
@@ -205,35 +205,48 @@ statement *buildS(smtType type, void *smt) {
     return ptr;
 }
 
-assignment *buildA(asnType type, char* id, exp* exp) {
+assignment *buildA(int line, asnType type, char* id, exp* exp) {
     assignment *ptr;
 	if ((ptr = malloc(sizeof(assignment))) == NULL) {
 		yyerror("out of memory");
 	}
+    ptr->line = line;
     ptr->type = type;
     ptr->id = id;
     ptr->exp = exp;
     return ptr;
 }
 
-ifState *buildI(exp *exp, statement *thenC, statement *elseC) {
+ifState *buildI(int line, exp *exp, statement *thenC, statement *elseC) {
     ifState *ptr;
 	if ((ptr = malloc(sizeof(ifState))) == NULL) {
 		yyerror("out of memory");
 	}
+    ptr->line = line;
     ptr->exp = exp;
     ptr->thenC = thenC;
     ptr->elseC = elseC;
     return ptr;
 }
 
-whileState *buildW(exp *exp, statement *doC) {
+whileState *buildWh(int line, exp *exp, statement *doC) {
     whileState *ptr;
 	if ((ptr = malloc(sizeof(whileState))) == NULL) {
 		yyerror("out of memory");
 	}
+    ptr->line = line;
     ptr->exp = exp;
     ptr->doC = doC;
+    return ptr;
+}
+
+writeState *buildWr(int line, exp *exp) {
+    writeState *ptr;
+	if ((ptr = malloc(sizeof(writeState))) == NULL) {
+		yyerror("out of memory");
+	}
+    ptr->line = line;
+    ptr->exp = exp;
     return ptr;
 }
 

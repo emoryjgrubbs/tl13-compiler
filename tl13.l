@@ -1,11 +1,13 @@
 %{
 #include "tl13.h"
 #include "tl13.tab.h"
+#define YY_USER_ACTION yylloc.first_line = yylloc.last_line = yylineno;
 %}
+
+%option yylineno
 
 %%
 %.*             { /* eat inline comment */ }
-\n              return(ENDL);
 [[:space:]]     { /* eat white space */}
 [1-9][0-9]*|0   { 
                     yylval.sval = malloc(strlen(yytext));
