@@ -17,6 +17,7 @@ struct program {
 };
 
 struct declaration {
+    int line;
     char *id;
     type type;
     declaration *next; // linked list of declaration

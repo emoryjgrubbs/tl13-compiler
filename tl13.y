@@ -4,6 +4,8 @@
 int yylex(void);
 int yyerror(char *);
 
+int line = 1;
+
 program *buildP(declaration *decls, statement *smts);
 declaration *buildD(char *id, type type, declaration *next);
 statement *appendSmt(statement *ptr, statement *next);
@@ -21,6 +23,7 @@ fact *buildF(factType type, void *value);
 // Symbols.
 %union { 
     char        *sval; 
+    int         ival;
     program     *pPtr;
     declaration *dPtr;
     type        type;
@@ -66,6 +69,7 @@ fact *buildF(factType type, void *value);
 %token BOOL
 %token WRITEINT
 %token READINT
+%token ENDL
 
 %start Program
 
@@ -80,71 +84,76 @@ fact *buildF(factType type, void *value);
 %type <sEPtr> SimpleExpression
 %type <tPtr> Term
 %type <fPtr> Factor
+%type <ival> PosEndL
 
 %%
 Program:
-    PROGRAM Declarations BGN StatementSequence END { $$ = buildP($2, $4); genProg($$); }
+    PROGRAM PosEndL Declarations BGN PosEndL StatementSequence END PosEndL { $$ = buildP($3, $6); genProg($$); }
     ;
 Declarations:
-    VAR IDENT AS Type SC Declarations   { $$ = buildD($2, $4, $6); }
+    VAR PosEndL IDENT PosEndL AS PosEndL Type SC PosEndL Declarations   { $$ = buildD($3, $7, $10); }
     | /* epsilon */                     { $$ = NULL; }
     ;
 Type:
-    INT     { $$ = INT_TYPE; }
-    | BOOL  { $$ = BOOL_TYPE; }
+    INT PosEndL     { $$ = INT_TYPE; }
+    | BOOL PosEndL  { $$ = BOOL_TYPE; }
     ;
 StatementSequence:
-    Statement SC StatementSequence  { $$ = appendSmt($1, $3); } // modify $1 statement struct to have $3 as *next
+    Statement SC PosEndL StatementSequence  { $$ = appendSmt($1, $4); } // modify $1 statement struct to have $3 as *next
     | /* epsilon */                 { $$ = NULL; }
     ;
 Statement:
-    Assignment          { $$ = buildS(ASN_SMT, $1); }
-    | IfStatement       { $$ = buildS(IF_SMT, $1); }
-    | WhileStatement    { $$ = buildS(WHILE_SMT, $1); }
-    | WriteInt          { $$ = buildS(WRITE_SMT, $1); }
+    Assignment PosEndL          { $$ = buildS(ASN_SMT, $1); }
+    | IfStatement PosEndL       { $$ = buildS(IF_SMT, $1); }
+    | WhileStatement PosEndL    { $$ = buildS(WHILE_SMT, $1); }
+    | WriteInt PosEndL          { $$ = buildS(WRITE_SMT, $1); }
     ;
 Assignment:
-    IDENT ASGN Expression   { $$ = buildA(EXP_ASN, $1, $3); }
-    | IDENT ASGN READINT    { $$ = buildA(READ_ASN, $1, NULL); } // pass dummy param to avoid overcomplicating with variadic
+    IDENT PosEndL ASGN PosEndL Expression   { $$ = buildA(EXP_ASN, $1, $5); }
+    | IDENT PosEndL ASGN PosEndL READINT PosEndL    { $$ = buildA(READ_ASN, $1, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 IfStatement:
-    IF Expression THEN StatementSequence ElseClause END { $$ = buildI($2, $4, $5); }
+    IF PosEndL Expression THEN PosEndL StatementSequence ElseClause END PosEndL { $$ = buildI($3, $6, $7); }
     ;
 ElseClause:
-    ELSE StatementSequence  { $$ = $2; }
+    ELSE PosEndL StatementSequence  { $$ = $3; }
     | /* epsilon */         { $$ = NULL; }
     ;
 WhileStatement:
-    WHILE Expression DO StatementSequence END   { $$ = buildW($2, $4); }
+    WHILE PosEndL Expression DO PosEndL StatementSequence END PosEndL   { $$ = buildW($3, $6); }
     ;
 WriteInt:
-    WRITEINT Expression { $$ = $2; }
+    WRITEINT PosEndL Expression { $$ = $3; }
     ;
 Expression:
-    SimpleExpression EQUAL SimpleExpression     { $$ = buildE($1, EQUAL_OP, $3); }
-    | SimpleExpression NEQUAL SimpleExpression  { $$ = buildE($1, NEQUAL_OP, $3); }
-    | SimpleExpression LT SimpleExpression      { $$ = buildE($1, LT_OP, $3); }
-    | SimpleExpression GT SimpleExpression      { $$ = buildE($1, GT_OP, $3); }
-    | SimpleExpression LTE SimpleExpression     { $$ = buildE($1, LTE_OP, $3); }
-    | SimpleExpression GTE SimpleExpression     { $$ = buildE($1, GTE_OP, $3); }
+    SimpleExpression EQUAL PosEndL SimpleExpression     { $$ = buildE($1, EQUAL_OP, $4); }
+    | SimpleExpression NEQUAL PosEndL SimpleExpression  { $$ = buildE($1, NEQUAL_OP, $4); }
+    | SimpleExpression LT PosEndL SimpleExpression      { $$ = buildE($1, LT_OP, $4); }
+    | SimpleExpression GT PosEndL SimpleExpression      { $$ = buildE($1, GT_OP, $4); }
+    | SimpleExpression LTE PosEndL SimpleExpression     { $$ = buildE($1, LTE_OP, $4); }
+    | SimpleExpression GTE PosEndL SimpleExpression     { $$ = buildE($1, GTE_OP, $4); }
     | SimpleExpression                          { $$ = buildE($1, NO_EXP_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 SimpleExpression:
-    Term PLUS Term      { $$ = buildSE($1, PLUS_OP, $3); }
-    | Term DASH Term    { $$ = buildSE($1, MINUS_OP, $3); }
+    Term PLUS PosEndL Term      { $$ = buildSE($1, PLUS_OP, $4); }
+    | Term DASH PosEndL Term    { $$ = buildSE($1, MINUS_OP, $4); }
     | Term              { $$ = buildSE($1, NO_SEXP_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 Term:
-    Factor MULT Factor  { $$ = buildT($1, MULT_OP, $3); }
-    | Factor DIV Factor { $$ = buildT($1, DIV_OP, $3); }
-    | Factor MOD Factor { $$ = buildT($1, MOD_OP, $3); }
+    Factor MULT PosEndL Factor  { $$ = buildT($1, MULT_OP, $4); }
+    | Factor DIV PosEndL Factor { $$ = buildT($1, DIV_OP, $4); }
+    | Factor MOD PosEndL Factor { $$ = buildT($1, MOD_OP, $4); }
     | Factor            { $$ = buildT($1, NO_TERM_OP, NULL); } // pass dummy param to avoid overcomplicating with variadic
     ;
 Factor:
-    IDENT               { $$ = buildF(ID_FACT, $1); }
-    | NUMBER            { $$ = buildF(NUM_FACT, $1); }
-    | BOOLEAN           { $$ = buildF(BOOL_FACT, $1); }
-    | LP Expression RP  { $$ = buildF(SUB_EXP_FACT, $2); }
+    IDENT PosEndL               { $$ = buildF(ID_FACT, $1); }
+    | NUMBER PosEndL            { $$ = buildF(NUM_FACT, $1); }
+    | BOOLEAN PosEndL           { $$ = buildF(BOOL_FACT, $1); }
+    | LP PosEndL Expression RP PosEndL  { $$ = buildF(SUB_EXP_FACT, $3); }
+    ;
+PosEndL:
+    ENDL PosEndL
+    | /* epsilon */
     ;
 %%
 
