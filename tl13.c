@@ -1067,6 +1067,8 @@ expInfo *genFact(fact *p) {
                 info->outStr = p->value.id;
                 info->errors = NULL;
                 if (ent->initialized == FALSE_BOOL) {
+                    // comply with informal semantics (uninitialized ints considered 0, bools false)
+                    info->outStr = "0";
                     /* TODO make warning? or just delete
                     struct error *err;
                     if ((err = malloc(sizeof(error))) == NULL) {}
