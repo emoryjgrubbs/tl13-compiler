@@ -209,6 +209,7 @@ int printExpErrors(int line, char *smt, int smtPlace, error *err) {
     errors++;
 
     free(err);
+    err = NULL;
     return 0;
 }
 
@@ -284,7 +285,6 @@ int genAsn(assignment *p, int indents) {
             for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
             printf("\n\n");
             errors++;
-            free(exp);
         }
         else {
             struct outputLine *line;
@@ -314,6 +314,8 @@ int genAsn(assignment *p, int indents) {
             strcat(smt, " ;");
             printExpErrors(p->line, smt, strlen(p->id) + strlen(" := "), exp->errors);
         }
+
+        free(exp);
     }
     else if (p->type == READ_ASN){
         if (ent->varType != INT_TYPE) {
@@ -358,6 +360,15 @@ int genIf(ifState *p, int indents) {
         printf("\n\n");
         errors++;
     }
+    // print the expression's errors
+    else if (exp->errors) {
+        char *smt;
+        if ((smt = malloc(strlen("if ") + strlen(exp->inStr) + strlen(" then ... end ;"))) == NULL) {}
+        strcpy(smt, "if ");
+        strcat(smt, exp->inStr);
+        strcat(smt, " then ... end ;");
+        printExpErrors(p->line, smt, strlen("if "), exp->errors);
+    }
     else {
         struct outputLine *line;
         if ((line = malloc(sizeof(outputLine))) == NULL) {}
@@ -372,15 +383,7 @@ int genIf(ifState *p, int indents) {
         output = line;
     }
 
-    // print the expression's errors
-    if (exp->errors) {
-        char *smt;
-        if ((smt = malloc(strlen("if ") + strlen(exp->inStr) + strlen(" then ... end ;"))) == NULL) {}
-        strcpy(smt, "if ");
-        strcat(smt, exp->inStr);
-        strcat(smt, " then ... end ;");
-        printExpErrors(p->line, smt, strlen("if "), exp->errors);
-    }
+    free(exp); 
 
     genSmts(p->thenC, indents+1);
 
@@ -410,7 +413,6 @@ int genIf(ifState *p, int indents) {
     EndElseLine->next = output;
     output = EndElseLine;
 
-    free(exp);
     free(p);
     return 0;
 }
@@ -423,6 +425,15 @@ int genWhile(whileState *p, int indents) {
         for (int i = 0; i < strlen(exp->inStr); i++) { printf(ANSI_COLOR_LIGHT_RED "^" ANSI_COLOR_RESET); }
         printf("\n\n");
         errors++;
+    }
+    // print the expression's errors
+    else if (exp->errors) {
+        char *smt;
+        if ((smt = malloc(strlen("while ") + strlen(exp->inStr) + strlen(" do ... end ;"))) == NULL) {}
+        strcpy(smt, "while ");
+        strcat(smt, exp->inStr);
+        strcat(smt, " do ... end ;");
+        printExpErrors(p->line, smt, strlen("while "), exp->errors);
     }
     else {
         struct outputLine *line;
@@ -438,15 +449,7 @@ int genWhile(whileState *p, int indents) {
         output = line;
     }
 
-    // print the expression's errors
-    if (exp->errors) {
-        char *smt;
-        if ((smt = malloc(strlen("while ") + strlen(exp->inStr) + strlen(" then ... end ;"))) == NULL) {}
-        strcpy(smt, "while ");
-        strcat(smt, exp->inStr);
-        strcat(smt, " then ... end ;");
-        printExpErrors(p->line, smt, strlen("while "), exp->errors);
-    }
+    free(exp);
 
     genSmts(p->doC, indents+1);
 
@@ -458,7 +461,6 @@ int genWhile(whileState *p, int indents) {
     line->next = output;
     output = line;
 
-    free(exp);
     free(p);
     return 0;
 }
